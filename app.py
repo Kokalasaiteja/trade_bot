@@ -17,8 +17,10 @@ st.title("🚀 Binance Futures Testnet Trading Bot")
 
 logger = setup_logger()
 
-# Detect if running on Streamlit Cloud
-IS_CLOUD = os.getenv("STREAMLIT_SERVER_HEADLESS") == "true"
+# SAFER DETECTION METHOD
+RUN_MODE = os.getenv("RUN_MODE", "cloud")  
+# default = cloud (safe)
+# set RUN_MODE=local in your local machine
 
 symbol = st.text_input("Symbol", "BTCUSDT")
 side = st.selectbox("Side", ["BUY", "SELL"])
@@ -37,25 +39,27 @@ if st.button("Place Order"):
         quantity = validate_quantity(quantity)
         price = validate_price(price, order_type)
 
-        if IS_CLOUD:
+        if RUN_MODE != "local":
             st.warning(
-                "⚠️ Due to Binance geo restrictions, live order execution works locally only."
+                "⚠️ Live order execution is disabled on cloud deployments."
             )
             st.info(
-                "Please run this application locally using CLI or Streamlit to execute real testnet orders."
+                "Due to Binance geo restrictions, live trading works only when running locally."
             )
-        else:
-            client = get_client()
+            st.stop()
 
-            response = place_order(
-                client, logger, symbol, side, order_type, quantity, price
-            )
+        # Only runs locally
+        client = get_client()
 
-            st.success("Order Placed Successfully!")
-            st.write("Order ID:", response.get("orderId"))
-            st.write("Status:", response.get("status"))
-            st.write("Executed Qty:", response.get("executedQty"))
-            st.write("Avg Price:", response.get("avgPrice"))
+        response = place_order(
+            client, logger, symbol, side, order_type, quantity, price
+        )
+
+        st.success("Order Placed Successfully!")
+        st.write("Order ID:", response.get("orderId"))
+        st.write("Status:", response.get("status"))
+        st.write("Executed Qty:", response.get("executedQty"))
+        st.write("Avg Price:", response.get("avgPrice"))
 
     except Exception as e:
         st.error(f"Order Failed: {str(e)}")
