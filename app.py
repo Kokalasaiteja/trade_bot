@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from bot.client import get_client
 from bot.orders import place_order
@@ -16,6 +17,9 @@ st.title("🚀 Binance Futures Testnet Trading Bot")
 
 logger = setup_logger()
 
+# Detect if running on Streamlit Cloud
+IS_CLOUD = os.getenv("STREAMLIT_SERVER_HEADLESS") == "true"
+
 symbol = st.text_input("Symbol", "BTCUSDT")
 side = st.selectbox("Side", ["BUY", "SELL"])
 order_type = st.selectbox("Order Type", ["MARKET", "LIMIT"])
@@ -33,17 +37,25 @@ if st.button("Place Order"):
         quantity = validate_quantity(quantity)
         price = validate_price(price, order_type)
 
-        client = get_client()
+        if IS_CLOUD:
+            st.warning(
+                "⚠️ Due to Binance geo restrictions, live order execution works locally only."
+            )
+            st.info(
+                "Please run this application locally using CLI or Streamlit to execute real testnet orders."
+            )
+        else:
+            client = get_client()
 
-        response = place_order(
-            client, logger, symbol, side, order_type, quantity, price
-        )
+            response = place_order(
+                client, logger, symbol, side, order_type, quantity, price
+            )
 
-        st.success("Order Placed Successfully!")
-        st.write("Order ID:", response.get("orderId"))
-        st.write("Status:", response.get("status"))
-        st.write("Executed Qty:", response.get("executedQty"))
-        st.write("Avg Price:", response.get("avgPrice"))
+            st.success("Order Placed Successfully!")
+            st.write("Order ID:", response.get("orderId"))
+            st.write("Status:", response.get("status"))
+            st.write("Executed Qty:", response.get("executedQty"))
+            st.write("Avg Price:", response.get("avgPrice"))
 
     except Exception as e:
         st.error(f"Order Failed: {str(e)}")
